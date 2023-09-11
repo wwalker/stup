@@ -1,0 +1,54 @@
+_stup_completions() {
+  local cur prev split
+  # local words cword 
+  local days=(yesterday today tomorrow)
+  local COMMANDS=(show add edit copy log search add-category list-categories set-category-description order-categories rename-category bash-completion usage version)
+  declare -A _stup_command_options=(
+    ["show"]="@:-@:--at:-c:--category"
+    ["add"]="@:-@:--at:-c:--category:-n:--note"
+    ["edit"]="@:-@:--at:-c:--category"
+    ["copy"]="-f:--from:-t:--to:-c:--category"
+    ["log"]="--days:week:previous-week:month:previous-month:year:previous:-c:--category:--pager:--no-pager"
+    ["search"]="-f:--from:-t:--to:week:previous-week:month:previous-month:year:previous:-c:--category"
+    ["add-category"]="--category-name:--category-description"
+    ["list-categories"]=""
+    ["set-category-description"]="-c:--category:--category-description"
+    ["order-categories"]=""
+    ["rename-category"]="-c:--category:--category-description"
+    ["bash-completion"]=""
+    ["usage"]=""
+    ["version"]=""
+  )
+
+  source ~/.config/stup.conf
+
+  _init_completion -s || return
+
+  # shellcheck disable=SC2207
+  if ((COMP_CWORD <= 1)); then
+    COMPREPLY=($(compgen -W "${COMMANDS[*]}" -- "$cur"))
+  else
+    case $prev in
+      @ | -@ | --at)
+        COMPREPLY=($(compgen -W "${days[*]}" -- "$cur"))
+        return
+        ;;
+      -c | --category)
+        _stup_categories=($(stup list-categories))
+        COMPREPLY=($(compgen -W "${_stup_categories[*]}" -- "$cur"))
+        return
+        ;;
+      -n | --note)
+        return
+        ;;
+    esac
+
+    $split && return
+    option_string=${_stup_command_options[${COMP_WORDS[1]}]}
+    IFS=':' read -r -a options <<<"$option_string"
+
+    COMPREPLY=($(compgen -W "${options[*]}" -- "$cur"))
+  fi
+} &&
+  complete -F _stup_completions stup
+# ex: filetype=sh
